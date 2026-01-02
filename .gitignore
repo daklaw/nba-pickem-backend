@@ -1,0 +1,251 @@
+# ===========================================
+# Python
+# ===========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ===========================================
+# Virtual Environments
+# ===========================================
+.venv/
+venv/
+ENV/
+env/
+.env/
+
+# ===========================================
+# IDE / Editors
+# ===========================================
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# ===========================================
+# OS Files
+# ===========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ===========================================
+# Environment & Secrets
+# ===========================================
+# Local environment files (NEVER commit these!)
+.env
+.env.local
+.env.*.local
+
+# Production environment (use .env.production.example instead)
+.env.production
+
+# SSH keys and certificates
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# ===========================================
+# Database
+# ===========================================
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# PostgreSQL dumps
+*.dump
+*.sql
+*.sql.gz
+
+# ===========================================
+# Logs
+# ===========================================
+*.log
+logs/
+*.log.*
+
+# ===========================================
+# Testing
+# ===========================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+nosetests.xml
+test-results/
+junit/
+
+# ===========================================
+# Alembic
+# ===========================================
+alembic/versions/__pycache__/
+
+# ===========================================
+# Fabric
+# ===========================================
+.fabricrc
+
+# ===========================================
+# Backups & Archives
+# ===========================================
+backups/
+backup_*/
+*.bak
+*.backup
+*.old
+*.orig
+
+# ===========================================
+# Data Files
+# ===========================================
+# Ignore data files but keep the directory
+data/*.csv
+data/*.json
+data/*.xlsx
+data/*.xls
+!data/.gitkeep
+
+# ===========================================
+# Temporary Files
+# ===========================================
+*.tmp
+*.temp
+tmp/
+temp/
+cache/
+
+# ===========================================
+# Documentation Build
+# ===========================================
+docs/_build/
+site/
+
+# ===========================================
+# Package Manager
+# ===========================================
+# npm (if using any JS tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ===========================================
+# CI/CD
+# ===========================================
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# ===========================================
+# Other
+# ===========================================
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# Docs
+.docs/

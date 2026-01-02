@@ -1,0 +1,19 @@
+# Fabric Configuration Example
+# Copy this file to .fabricrc and customize for your deployment
+
+# Remote server settings
+remote_user = root
+remote_host = 165.232.129.168
+remote_dir = /home/apps/nba_pickem_backend
+venv_dir = /home/venvs/nba_pickem_backend
+
+# Database settings
+db_name = nba_pickem
+db_user = nba_pickem
+
+# Service settings
+service_name = nba-pickem
+
+# Domain settings (for nginx/ssl)
+domain = api.yourdomain.com
+email = you@email.com
