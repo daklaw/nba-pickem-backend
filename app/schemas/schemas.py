@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_serializer
 from typing import Optional, List
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from uuid import UUID
 
 
@@ -96,6 +96,22 @@ class WeekBase(BaseModel):
     end_date: date  # Sunday
     lock_time: datetime  # When picks lock (start of first game)
     season_id: UUID
+
+    @field_serializer('lock_time')
+    def serialize_lock_time(self, dt: datetime, _info):
+        """Serialize lock_time with UTC timezone (Z suffix)"""
+        if dt is None:
+            return None
+        # Add UTC timezone if naive
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        # Convert to UTC
+        utc_dt = dt.astimezone(timezone.utc)
+        # Return with Z suffix
+        iso_string = utc_dt.isoformat()
+        if iso_string.endswith('+00:00'):
+            return iso_string[:-6] + 'Z'
+        return iso_string
 
 
 class WeekCreate(WeekBase):
@@ -243,6 +259,22 @@ class TeamGamesResponse(BaseModel):
     winner_id: Optional[UUID] = None
     winner_name: Optional[str] = None
     nba_game_id: Optional[str] = None
+
+    @field_serializer('game_datetime')
+    def serialize_game_datetime(self, dt: Optional[datetime], _info):
+        """Serialize game_datetime with UTC timezone (Z suffix)"""
+        if dt is None:
+            return None
+        # Add UTC timezone if naive
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        # Convert to UTC
+        utc_dt = dt.astimezone(timezone.utc)
+        # Return with Z suffix
+        iso_string = utc_dt.isoformat()
+        if iso_string.endswith('+00:00'):
+            return iso_string[:-6] + 'Z'
+        return iso_string
 
 
 # Next Week Schedule Schema

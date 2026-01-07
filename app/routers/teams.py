@@ -10,7 +10,7 @@ from app.models.models import User, Game, Team
 from app.schemas.schemas import NextWeekGameSchedule
 from app.services.schedule_service import get_week_schedule_by_teams
 
-router = APIRouter(prefix="/api/teams", tags=["teams"])
+router = APIRouter(prefix="/teams", tags=["teams"])
 
 
 def get_next_monday():

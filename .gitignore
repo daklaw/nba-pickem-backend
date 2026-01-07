@@ -249,3 +249,6 @@ dmypy.json
 
 # Docs
 .docs/
+# Password update files
+update_passwords.py
+data/email-password.csv

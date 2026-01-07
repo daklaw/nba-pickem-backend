@@ -1,15 +1,48 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.routers import auth, team_selections, leagues, games, seasons, weeks, teams
 import logging
 import json
 import time
+from datetime import datetime, timezone
 from app.core.config import settings
+
+
+# Custom JSON encoder for timezone-aware datetimes
+class CustomJSONResponse(JSONResponse):
+    def render(self, content) -> bytes:
+        return json.dumps(
+            content,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+            default=self.custom_encoder,
+        ).encode("utf-8")
+
+    @staticmethod
+    def custom_encoder(obj):
+        if isinstance(obj, datetime):
+            # Ensure datetime has timezone info
+            if obj.tzinfo is None:
+                obj = obj.replace(tzinfo=timezone.utc)
+            # Convert to UTC and serialize with Z suffix
+            utc_dt = obj.astimezone(timezone.utc)
+            iso_string = utc_dt.isoformat()
+            # Replace +00:00 with Z for cleaner format
+            if iso_string.endswith('+00:00'):
+                return iso_string[:-6] + 'Z'
+            return iso_string
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
 
 app = FastAPI(
     title=settings.APP_NAME,
     description="API for NBA Pick'em Fantasy Game",
-    version="1.0.0"
+    version="1.0.0",
+    root_path="/api",
+    default_response_class=CustomJSONResponse
 )
 
 # Configure logging
@@ -82,7 +115,11 @@ async def log_requests_responses(request: Request, call_next):
 # Configure CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://nba-pickem.daklaw.me"  # Production frontend
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

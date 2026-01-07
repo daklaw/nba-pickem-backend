@@ -23,7 +23,7 @@ from getpass import getpass
 import sys
 import requests
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Annotated
 
 app = typer.Typer(
     name="NBA Pick'em Management",
@@ -339,6 +339,8 @@ def ingest_games():
 
             for date_obj in game_dates:
                 games = date_obj.get("games", [])
+                # Get the local game date from the API (not UTC date)
+                local_game_date_str = date_obj.get("gameDate")  # Format: "MM/DD/YYYY"
 
                 for game_data in games:
                     try:
@@ -387,13 +389,16 @@ def ingest_games():
                             error_count += 1
                             continue
 
-                        # Parse datetime
-                        game_datetime_str = game_data.get("gameDateTimeEst")
+                        # Parse datetime (use UTC time) and date (use local date from API)
+                        game_datetime_str = game_data.get("gameDateTimeUTC")
                         game_datetime = None
                         game_date = None
                         if game_datetime_str:
                             game_datetime = datetime.fromisoformat(game_datetime_str.replace("Z", "+00:00"))
-                            game_date = game_datetime.date()
+                        # Use local game date from API, not UTC date
+                        if local_game_date_str:
+                            # Parse date (format can be "MM/DD/YYYY" or "MM/DD/YYYY HH:MM:SS")
+                            game_date = datetime.strptime(local_game_date_str.split()[0], "%m/%d/%Y").date()
 
                         # Extract scores
                         home_score = game_data.get("homeTeam", {}).get("score")
@@ -459,6 +464,61 @@ def ingest_games():
                 db.commit()
                 console.print()
                 console.print("[green]✓[/green] Changes committed to database")
+
+                # Assign games to weeks and update lock times (using EST boundaries)
+                console.print()
+                console.print("[yellow]Assigning games to weeks using EST boundaries...[/yellow]")
+                from app.models.models import Week
+                from sqlalchemy import and_
+                from datetime import timedelta, timezone as dt_timezone
+
+                # EST is UTC-5
+                EST = dt_timezone(timedelta(hours=-5))
+
+                weeks = db.query(Week).all()
+                weeks_updated = 0
+                games_assigned = 0
+
+                for week in weeks:
+                    # Calculate week boundaries in EST
+                    # Monday 00:00:00 EST to Sunday 23:59:59 EST
+                    week_start_est = datetime.combine(week.start_date, datetime.min.time()).replace(tzinfo=EST)
+                    week_end_est = datetime.combine(week.end_date, datetime.max.time()).replace(tzinfo=EST)
+
+                    # Convert to UTC for comparison
+                    week_start_utc = week_start_est.astimezone(dt_timezone.utc)
+                    week_end_utc = week_end_est.astimezone(dt_timezone.utc)
+
+                    # Find games that fall within this week's EST boundaries
+                    games_in_week = db.query(Game).filter(
+                        and_(
+                            Game.game_datetime >= week_start_utc,
+                            Game.game_datetime <= week_end_utc
+                        )
+                    ).all()
+
+                    if games_in_week:
+                        # Assign games to week
+                        for game in games_in_week:
+                            if game.week_id != week.id:
+                                game.week_id = week.id
+                                games_assigned += 1
+
+                        # Update lock time to first game (in EST, on or after Monday)
+                        first_game = min(
+                            (g for g in games_in_week if g.game_datetime),
+                            key=lambda g: g.game_datetime,
+                            default=None
+                        )
+
+                        if first_game and week.lock_time != first_game.game_datetime:
+                            week.lock_time = first_game.game_datetime
+                            weeks_updated += 1
+
+                if games_assigned > 0 or weeks_updated > 0:
+                    db.commit()
+                    console.print(f"[green]✓[/green] Assigned {games_assigned} games to weeks")
+                    console.print(f"[green]✓[/green] Updated {weeks_updated} week lock times")
 
             console.print()
             console.print(f"[bold green]Summary:[/bold green]")
@@ -810,6 +870,8 @@ def backfill_scores():
 
             for date_obj in game_dates:
                 games = date_obj.get("games", [])
+                # Get the local game date from the API (not UTC date)
+                local_game_date_str = date_obj.get("gameDate")  # Format: "MM/DD/YYYY"
 
                 for game_data in games:
                     try:
@@ -852,13 +914,16 @@ def backfill_scores():
                             else:
                                 winner_id = None
 
-                            # Parse datetime
-                            game_datetime_str = game_data.get("gameDateTimeEst")
+                            # Parse datetime (use UTC time) and date (use local date from API)
+                            game_datetime_str = game_data.get("gameDateTimeUTC")
                             game_datetime = None
                             game_date = None
                             if game_datetime_str:
                                 game_datetime = datetime.fromisoformat(game_datetime_str.replace("Z", "+00:00"))
-                                game_date = game_datetime.date()
+                            # Use local game date from API, not UTC date
+                            if local_game_date_str:
+                                # Parse date (format can be "MM/DD/YYYY" or "MM/DD/YYYY HH:MM:SS")
+                                game_date = datetime.strptime(local_game_date_str.split()[0], "%m/%d/%Y").date()
 
                             # Find or create game
                             existing_game = db.query(Game).filter(Game.nba_game_id == nba_game_id).first()
@@ -925,6 +990,130 @@ def backfill_scores():
         import traceback
         console.print(traceback.format_exc())
         sys.exit(1)
+
+
+@app.command()
+def admin_submit_picks(
+    email: str,
+    week_number: int,
+    teams: str,
+    superweek: Annotated[bool, typer.Option("--superweek")] = False,
+    shoot_the_moon: Annotated[bool, typer.Option("--shoot-the-moon")] = False
+):
+    """
+    Admin command to submit picks for a user (bypasses lock check).
+    Use this to manually enter picks for users who were affected by bugs.
+
+    Example:
+        python manage.py admin-submit-picks user@email.com 12 "Lakers,Warriors,Celtics"
+        python manage.py admin-submit-picks user@email.com 12 "Bulls" --shoot-the-moon
+    """
+    from app.core.database import SessionLocal
+    from app.models.models import User, Week, Team, TeamSelection, Season
+
+    console.print(f"[bold blue]Admin: Submitting Picks[/bold blue]")
+    console.print(f"User: {email}")
+    console.print(f"Week: {week_number}")
+    if superweek:
+        console.print(f"[yellow]Superweek: YES[/yellow]")
+    if shoot_the_moon:
+        console.print(f"[yellow]Shoot the Moon: YES[/yellow]")
+    console.print()
+
+    db = SessionLocal()
+    try:
+        # Find user
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            console.print(f"[red]✗[/red] User not found: {email}")
+            sys.exit(1)
+
+        # Find week
+        week = db.query(Week).filter(Week.number == week_number).first()
+        if not week:
+            console.print(f"[red]✗[/red] Week {week_number} not found")
+            sys.exit(1)
+
+        # Parse team names/abbreviations
+        team_names = [t.strip() for t in teams.split(',')]
+        if not team_names or len(team_names) == 0:
+            console.print(f"[red]✗[/red] No teams provided")
+            sys.exit(1)
+
+        # Find teams in database
+        selected_teams = []
+        for team_name in team_names:
+            team = db.query(Team).filter(
+                (Team.name.ilike(f"%{team_name}%")) |
+                (Team.abbreviation == team_name.upper())
+            ).first()
+
+            if not team:
+                console.print(f"[red]✗[/red] Team not found: {team_name}")
+                sys.exit(1)
+            selected_teams.append(team)
+
+        console.print(f"[cyan]Selected teams:[/cyan]")
+        for team in selected_teams:
+            console.print(f"  - {team.name} ({team.abbreviation})")
+        console.print()
+
+        # Check if user already has selections for this week
+        existing_selections = db.query(TeamSelection).filter(
+            TeamSelection.user_id == user.id,
+            TeamSelection.week_id == week.id
+        ).all()
+
+        if existing_selections:
+            console.print(f"[yellow]⚠[/yellow] User already has {len(existing_selections)} selections for this week")
+            if not typer.confirm("Delete existing selections and replace?"):
+                console.print("[yellow]Cancelled[/yellow]")
+                sys.exit(0)
+
+            # Delete existing selections
+            for selection in existing_selections:
+                db.delete(selection)
+            console.print(f"[green]✓[/green] Deleted {len(existing_selections)} existing selections")
+
+        # Get season ID from week
+        season = db.query(Season).filter(Season.id == week.season_id).first()
+        if not season:
+            console.print(f"[red]✗[/red] Season not found for week {week_number}")
+            sys.exit(1)
+
+        # Create new selections (bypassing lock check)
+        # Ensure booleans are actual booleans (not strings)
+        is_sw = True if str(superweek).lower() == 'true' else False
+        is_stm = True if str(shoot_the_moon).lower() == 'true' else False
+
+        for team in selected_teams:
+            selection = TeamSelection(
+                user_id=user.id,
+                team_id=team.id,
+                week_id=week.id,
+                season_id=season.id,
+                total_points=0,  # Will be calculated later
+                is_superweek=is_sw,
+                is_shoot_the_moon=is_stm
+            )
+            db.add(selection)
+
+        db.commit()
+
+        console.print()
+        console.print(f"[green]✓[/green] Successfully submitted {len(selected_teams)} picks for {email}")
+        console.print()
+        console.print("[bold cyan]Note:[/bold cyan] Points will be calculated when games complete.")
+        console.print("Run 'python manage.py recalculate-points' to recalculate all points.")
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Error: {e}")
+        import traceback
+        console.print(traceback.format_exc())
+        db.rollback()
+        sys.exit(1)
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
