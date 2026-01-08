@@ -32,6 +32,7 @@ class UserResponse(UserBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user_id: UUID
     current_season_id: Optional[UUID] = None
 
 
@@ -211,6 +212,10 @@ class UserStandingResponse(BaseModel):
     email: str
     name: str
     season_points: int
+    current_week_team_name: Optional[str] = None
+    current_week_is_superweek: bool = False
+    current_week_is_shoot_the_moon: bool = False
+    current_week_points: int = 0
 
 
 class LeagueStandingsResponse(BaseModel):
@@ -224,7 +229,7 @@ class LeagueStandingsResponse(BaseModel):
 # Weekly Selections Schemas
 class UserWeeklySelectionResponse(BaseModel):
     user_id: UUID
-    email: str
+    name: str
     has_selected: bool
     team_id: Optional[UUID] = None
     team_name: Optional[str] = None

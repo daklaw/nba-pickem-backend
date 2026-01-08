@@ -44,6 +44,7 @@ async def login(
     return {
         "access_token": access_token,
         "token_type": "bearer",
+        "user_id": user.id,
         "current_season_id": current_season.id if current_season else None
     }
 
