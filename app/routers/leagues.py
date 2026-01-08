@@ -86,7 +86,9 @@ async def get_league_standings(
                     "team_name": team.name if team else None,
                     "is_superweek": selection.is_superweek,
                     "is_shoot_the_moon": selection.is_shoot_the_moon,
-                    "total_points": selection.total_points
+                    "total_points": selection.total_points,
+                    "wins": selection.wins,
+                    "losses": selection.losses
                 }
 
     # Format standings with rank and current week selection
@@ -103,7 +105,9 @@ async def get_league_standings(
                 current_week_team_name=current_week_data.get("team_name"),
                 current_week_is_superweek=current_week_data.get("is_superweek", False),
                 current_week_is_shoot_the_moon=current_week_data.get("is_shoot_the_moon", False),
-                current_week_points=current_week_data.get("total_points", 0)
+                current_week_points=current_week_data.get("total_points", 0),
+                current_week_wins=current_week_data.get("wins", 0),
+                current_week_losses=current_week_data.get("losses", 0)
             )
         )
 

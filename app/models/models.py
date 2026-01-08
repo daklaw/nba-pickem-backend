@@ -81,6 +81,8 @@ class TeamSelection(Base):
     season_id = Column(UUID(as_uuid=True), ForeignKey("seasons.id"), nullable=False)
     week_id = Column(UUID(as_uuid=True), ForeignKey("weeks.id"), nullable=False)
     total_points = Column(Integer, default=0)
+    wins = Column(Integer, default=0)
+    losses = Column(Integer, default=0)
     is_superweek = Column(Boolean, default=False)
     is_shoot_the_moon = Column(Boolean, default=False)
 

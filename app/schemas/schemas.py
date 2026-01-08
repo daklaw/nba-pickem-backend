@@ -175,6 +175,8 @@ class TeamSelectionResponse(BaseModel):
     week_id: UUID
     week_number: int
     total_points: int
+    wins: int
+    losses: int
     is_superweek: bool
     is_shoot_the_moon: bool
 
@@ -216,6 +218,8 @@ class UserStandingResponse(BaseModel):
     current_week_is_superweek: bool = False
     current_week_is_shoot_the_moon: bool = False
     current_week_points: int = 0
+    current_week_wins: int = 0
+    current_week_losses: int = 0
 
 
 class LeagueStandingsResponse(BaseModel):
